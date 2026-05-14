@@ -1,0 +1,47 @@
+name: CI/CD — Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # --- ÉTAPE 1 : Checks (CI) ---
+  ci:
+    name: First checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Check that index.html exists
+        run: test -f index.html && echo "✅ index.html found" || exit 1
+
+      - name: Check that style.css exists
+        run: test -f style.css && echo "✅ style.css found" || exit 1
+
+      - name: Check that HTML basic syntax is OK
+        run: |
+          grep -q "<!DOCTYPE html>" index.html && echo "✅ DOCTYPE OK" || exit 1
+          grep -q "</html>" index.html && echo "✅ Syntax OK" || exit 1
+
+  # --- ÉTAPE 2 : Deploy (CD) ---
+  deploy:
+    name: Deployment
+    needs: ci                              # waits that CI becoms green
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'   # only on main
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Deploy on GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
